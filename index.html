@@ -522,4 +522,594 @@
                     mobilePreviewWrap.style.display = 'flex';
                 }
                 btnPreview.className = "px-2 py-1 text-[11px] font-bold rounded-md bg-black text-white shadow-sm transition-all";
-                btnEditor.className = "px-2 py-1 text-[11px] font-bold rounded-md text-slate
+                btnEditor.className = "px-2 py-1 text-[11px] font-bold rounded-md text-slate-600 transition-all";
+                renderResume();
+            }
+        }
+
+        function switchEditorTab(tab) {
+            ['content', 'design'].forEach(t => {
+                document.getElementById(`editor-tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).className = "flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-white text-slate-600 hover:bg-slate-100 transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap";
+            });
+            document.getElementById(`editor-tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tab}`).className = "flex-1 py-2 px-3 text-xs font-bold rounded-xl bg-black text-white shadow-sm transition-all flex items-center justify-center space-x-1.5 whitespace-nowrap";
+        }
+
+        function renderTemplatesGrid() {
+            const grid = document.getElementById('templates-grid');
+            grid.innerHTML = templatesList.map(t => {
+                const isSelected = currentTemplateId === t.id;
+                return `
+                    <button onclick="setTemplate(${t.id})" class="p-3.5 rounded-xl border-2 text-left transition-all ${isSelected ? 'border-black bg-slate-50 shadow-sm' : 'border-slate-200 hover:border-slate-300 bg-white'}">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-xs text-slate-900">${t.name}</span>
+                            ${isSelected ? '<i class="fa-solid fa-check text-black text-xs"></i>' : ''}
+                        </div>
+                        <p class="text-[11px] text-slate-500">${t.description}</p>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function renderFontsGrid() {
+            const grid = document.getElementById('fonts-grid');
+            grid.innerHTML = fontsList.map(f => {
+                const isSelected = currentFont === f.id;
+                return `
+                    <button onclick="setFont('${f.id}')" class="p-3 rounded-xl border-2 text-left transition-all ${isSelected ? 'border-black bg-slate-50 shadow-sm' : 'border-slate-200 hover:border-slate-300 bg-white'}" style="font-family: ${f.family}">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-xs text-slate-900">${f.name}</span>
+                            ${isSelected ? '<i class="fa-solid fa-check text-black text-xs"></i>' : ''}
+                        </div>
+                        <span class="text-[10px] text-slate-400">Aa Bb 123</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function setTemplate(id) {
+            currentTemplateId = id;
+            const tObj = templatesList.find(t => t.id === id);
+            document.getElementById('active-template-badge').innerText = tObj ? tObj.name : 'Template';
+            renderTemplatesGrid();
+            renderResume();
+            showToast(`Applied ${tObj ? tObj.name : 'Template'} successfully!`);
+        }
+
+        function setFont(fontId) {
+            currentFont = fontId;
+            renderFontsGrid();
+            renderResume();
+            const fObj = fontsList.find(f => f.id === fontId);
+            showToast(`Applied typography font: ${fObj ? fObj.name : fontId}`);
+        }
+
+        function populateInputs() {
+            document.getElementById('input-name').value = resumeData.name;
+            document.getElementById('input-title').value = resumeData.title;
+            document.getElementById('input-email').value = resumeData.email;
+            document.getElementById('input-phone').value = resumeData.phone;
+            document.getElementById('input-location').value = resumeData.location;
+            document.getElementById('input-website').value = resumeData.website;
+            document.getElementById('input-summary').value = resumeData.summary;
+            document.getElementById('input-skills').value = resumeData.skills;
+            if (resumeData.photo) {
+                document.getElementById('photo-preview-img').src = resumeData.photo;
+                document.getElementById('photo-preview-img').classList.remove('hidden');
+                document.getElementById('photo-placeholder-icon').classList.add('hidden');
+                document.getElementById('remove-photo-btn').classList.remove('hidden');
+            }
+            renderExperienceInputs();
+            renderEducationInputs();
+            renderCustomSectionInputs();
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    resumeData.photo = e.target.result;
+                    document.getElementById('photo-preview-img').src = resumeData.photo;
+                    document.getElementById('photo-preview-img').classList.remove('hidden');
+                    document.getElementById('photo-placeholder-icon').classList.add('hidden');
+                    document.getElementById('remove-photo-btn').classList.remove('hidden');
+                    renderResume();
+                    showToast("Profile photo uploaded!");
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removePhoto() {
+            resumeData.photo = "";
+            document.getElementById('photo-preview-img').src = "";
+            document.getElementById('photo-preview-img').classList.add('hidden');
+            document.getElementById('photo-placeholder-icon').classList.remove('hidden');
+            document.getElementById('remove-photo-btn').classList.add('hidden');
+            document.getElementById('input-photo').value = "";
+            renderResume();
+            showToast("Profile photo removed.");
+        }
+
+        function renderExperienceInputs() {
+            const container = document.getElementById('experience-list');
+            container.innerHTML = resumeData.experience.map((exp) => `
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 relative group">
+                    <button onclick="removeExperience(${exp.id})" class="absolute top-3 right-3 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash text-xs"></i></button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input type="text" value="${exp.role}" oninput="updateExpField(${exp.id}, 'role', this.value)" placeholder="Role Title" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-black">
+                        <input type="text" value="${exp.company}" oninput="updateExpField(${exp.id}, 'company', this.value)" placeholder="Company" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-black">
+                    </div>
+                    <input type="text" value="${exp.period}" oninput="updateExpField(${exp.id}, 'period', this.value)" placeholder="2022 - Present" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-black">
+                    <textarea rows="2" oninput="updateExpField(${exp.id}, 'description', this.value)" placeholder="Description & achievements..." class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-black resize-none">${exp.description}</textarea>
+                </div>
+            `).join('');
+        }
+
+        function renderEducationInputs() {
+            const container = document.getElementById('education-list');
+            container.innerHTML = resumeData.education.map((edu) => `
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 relative group">
+                    <button onclick="removeEducation(${edu.id})" class="absolute top-3 right-3 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash text-xs"></i></button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input type="text" value="${edu.degree}" oninput="updateEduField(${edu.id}, 'degree', this.value)" placeholder="Degree" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-black">
+                        <input type="text" value="${edu.institution}" oninput="updateEduField(${edu.id}, 'institution', this.value)" placeholder="Institution" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-black">
+                    </div>
+                    <input type="text" value="${edu.period}" oninput="updateEduField(${edu.id}, 'period', this.value)" placeholder="2015 - 2019" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-black">
+                </div>
+            `).join('');
+        }
+
+        function renderCustomSectionInputs() {
+            const container = document.getElementById('custom-sections-list');
+            container.innerHTML = resumeData.customSections.map((sec) => `
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 relative group">
+                    <button onclick="removeCustomSection(${sec.id})" class="absolute top-3 right-3 text-slate-400 hover:text-rose-600"><i class="fa-solid fa-trash text-xs"></i></button>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Section Title</label>
+                        <input type="text" value="${sec.title}" oninput="updateCustomField(${sec.id}, 'title', this.value)" placeholder="e.g. Certifications" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-black">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Section Content</label>
+                        <textarea rows="3" oninput="updateCustomField(${sec.id}, 'content', this.value)" placeholder="Enter content..." class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-black resize-none">${sec.content}</textarea>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateResumeData() {
+            resumeData.name = document.getElementById('input-name').value;
+            resumeData.title = document.getElementById('input-title').value;
+            resumeData.email = document.getElementById('input-email').value;
+            resumeData.phone = document.getElementById('input-phone').value;
+            resumeData.location = document.getElementById('input-location').value;
+            resumeData.website = document.getElementById('input-website').value;
+            resumeData.summary = document.getElementById('input-summary').value;
+            resumeData.skills = document.getElementById('input-skills').value;
+            renderResume();
+        }
+
+        function updateExpField(id, field, value) {
+            const item = resumeData.experience.find(e => e.id === id);
+            if (item) { item[field] = value; renderResume(); }
+        }
+
+        function updateEduField(id, field, value) {
+            const item = resumeData.education.find(e => e.id === id);
+            if (item) { item[field] = value; renderResume(); }
+        }
+
+        function updateCustomField(id, field, value) {
+            const item = resumeData.customSections.find(s => s.id === id);
+            if (item) { item[field] = value; renderResume(); }
+        }
+
+        function addExperience() {
+            resumeData.experience.push({ id: Date.now(), role: "New Role", company: "Company", period: "2024 - Present", description: "Key achievements." });
+            renderExperienceInputs();
+            renderResume();
+        }
+
+        function removeExperience(id) {
+            resumeData.experience = resumeData.experience.filter(e => e.id !== id);
+            renderExperienceInputs();
+            renderResume();
+        }
+
+        function addEducation() {
+            resumeData.education.push({ id: Date.now(), degree: "Degree", institution: "Institution", period: "2020 - 2024", details: "" });
+            renderEducationInputs();
+            renderResume();
+        }
+
+        function removeEducation(id) {
+            resumeData.education = resumeData.education.filter(e => e.id !== id);
+            renderEducationInputs();
+            renderResume();
+        }
+
+        function addCustomSection() {
+            resumeData.customSections.push({ id: Date.now(), title: "New Section", content: "Details..." });
+            renderCustomSectionInputs();
+            renderResume();
+        }
+
+        function removeCustomSection(id) {
+            resumeData.customSections = resumeData.customSections.filter(s => s.id !== id);
+            renderCustomSectionInputs();
+            renderResume();
+        }
+
+        function setAccentColor(color) {
+            accentColor = color;
+            document.getElementById('accent-color-picker').value = color;
+            renderResume();
+        }
+
+        function getActiveFontFamilyStyle() {
+            const fObj = fontsList.find(f => f.id === currentFont);
+            return fObj ? `font-family: ${fObj.family}` : "font-family: 'Plus Jakarta Sans', sans-serif;";
+        }
+
+        function renderCustomSectionsHTML(uppercase = true) {
+            if (!resumeData.customSections || resumeData.customSections.length === 0) return '';
+            return resumeData.customSections.map(sec => `
+                <div>
+                    <h2 class="text-xs font-extrabold ${uppercase ? 'uppercase tracking-widest' : ''} text-slate-400 mb-2">${sec.title}</h2>
+                    <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">${sec.content}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderResume() {
+            const cards = document.querySelectorAll('.resume-preview-card');
+            cards.forEach(container => {
+                const fontStyle = getActiveFontFamilyStyle();
+                const photoHTML = resumeData.photo ? `<div class="w-20 h-20 rounded-2xl overflow-hidden border-2 shadow-sm shrink-0" style="border-color: ${accentColor};"><img src="${resumeData.photo}" class="w-full h-full object-cover"></div>` : '';
+
+                if (currentTemplateId === 12) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm; color: #000;";
+                    container.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="text-center pb-3 border-b border-black">
+                                <div class="text-2xl font-bold tracking-wider">${resumeData.name || 'Your Name'}</div>
+                                <p class="text-xs font-bold uppercase tracking-widest mt-1">${resumeData.title || 'Professional Title'}</p>
+                                <div class="text-xs mt-2 space-x-2">
+                                    ${resumeData.email ? `<span>${resumeData.email}</span>` : ''}
+                                    ${resumeData.phone ? `<span>| ${resumeData.phone}</span>` : ''}
+                                    ${resumeData.location ? `<span>| ${resumeData.location}</span>` : ''}
+                                    ${resumeData.website ? `<span>| ${resumeData.website}</span>` : ''}
+                                </div>
+                            </div>
+                            ${resumeData.summary ? `<div><h2 class="text-xs font-bold uppercase tracking-widest border-b border-black pb-0.5 mb-1">Professional Summary</h2><p class="text-xs leading-normal">${resumeData.summary}</p></div>` : ''}
+                            ${resumeData.experience.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-widest border-b border-black pb-0.5 mb-2">Work Experience</h2><div class="space-y-3">${resumeData.experience.map(e => `<div><div class="flex justify-between font-bold text-xs"><span>${e.role} — ${e.company}</span><span>${e.period}</span></div><p class="text-xs mt-1 leading-normal">• ${e.description}</p></div>`).join('')}</div></div>` : ''}
+                            ${resumeData.education.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-widest border-b border-black pb-0.5 mb-2">Education</h2><div class="space-y-2">${resumeData.education.map(ed => `<div class="flex justify-between text-xs"><div><span class="font-bold">${ed.degree}</span>, <span>${ed.institution}</span></div><span>${ed.period}</span></div>`).join('')}</div></div>` : ''}
+                            ${resumeData.skills ? `<div><h2 class="text-xs font-bold uppercase tracking-widest border-b border-black pb-0.5 mb-1">Skills</h2><p class="text-xs leading-normal">${resumeData.skills}</p></div>` : ''}
+                            ${renderCustomSectionsHTML(true)}
+                        </div>
+                    `;
+                } else if (currentTemplateId === 11) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm; color: #111;";
+                    container.innerHTML = `
+                        <div class="space-y-5">
+                            <div class="pb-3 border-b-2 border-slate-800">
+                                <div class="text-2xl font-bold text-slate-900">${resumeData.name || 'Your Name'}</div>
+                                <p class="text-xs font-bold text-slate-600 uppercase tracking-wide mt-0.5">${resumeData.title || 'Professional Title'}</p>
+                                <div class="flex flex-wrap gap-3 text-xs text-slate-600 mt-2">
+                                    ${resumeData.email ? `<span>${resumeData.email}</span>` : ''}
+                                    ${resumeData.phone ? `<span>• ${resumeData.phone}</span>` : ''}
+                                    ${resumeData.location ? `<span>• ${resumeData.location}</span>` : ''}
+                                    ${resumeData.website ? `<span>• ${resumeData.website}</span>` : ''}
+                                </div>
+                            </div>
+                            ${resumeData.summary ? `<div><h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-700 mb-1">Summary</h2><p class="text-xs text-slate-800 leading-relaxed">${resumeData.summary}</p></div>` : ''}
+                            ${resumeData.experience.length > 0 ? `<div><h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-700 mb-2">Professional Experience</h2><div class="space-y-3">${resumeData.experience.map(e => `<div><div class="flex justify-between font-bold text-xs text-slate-900"><span>${e.role} at ${e.company}</span><span class="font-normal text-slate-500">${e.period}</span></div><p class="text-xs text-slate-700 mt-1">${e.description}</p></div>`).join('')}</div></div>` : ''}
+                            ${resumeData.education.length > 0 ? `<div><h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-700 mb-2">Education</h2><div class="space-y-2">${resumeData.education.map(ed => `<div class="flex justify-between text-xs"><span class="font-bold text-slate-900">${ed.degree} — ${ed.institution}</span><span class="text-slate-500">${ed.period}</span></div>`).join('')}</div></div>` : ''}
+                            ${resumeData.skills ? `<div><h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-700 mb-1">Key Skills</h2><p class="text-xs text-slate-800">${resumeData.skills}</p></div>` : ''}
+                            ${renderCustomSectionsHTML(true)}
+                        </div>
+                    `;
+                } else if (currentTemplateId === 9) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm; border: 4px solid #1e293b;";
+                    container.innerHTML = `
+                        <div class="space-y-6">
+                            <div class="text-center pb-4 border-b border-slate-200">
+                                <div class="text-3xl font-extrabold tracking-tight text-slate-900">${resumeData.name || 'Your Name'}</div>
+                                <p class="text-xs font-bold uppercase tracking-widest text-slate-600 mt-1">${resumeData.title || 'Professional Title'}</p>
+                                <div class="flex flex-wrap justify-center gap-4 text-xs text-slate-500 mt-2">
+                                    ${resumeData.email ? `<span>${resumeData.email}</span>` : ''}
+                                    ${resumeData.phone ? `<span>${resumeData.phone}</span>` : ''}
+                                    ${resumeData.location ? `<span>${resumeData.location}</span>` : ''}
+                                    ${resumeData.website ? `<span>${resumeData.website}</span>` : ''}
+                                </div>
+                            </div>
+                            ${resumeData.summary ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-700 mb-1">Profile</h2><p class="text-xs text-slate-700 leading-relaxed">${resumeData.summary}</p></div>` : ''}
+                            ${resumeData.experience.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-700 mb-3">Experience</h2><div class="space-y-3">${resumeData.experience.map(e => `<div><div class="flex justify-between font-bold text-xs text-slate-900"><span>${e.role} — ${e.company}</span><span class="text-slate-500">${e.period}</span></div><p class="text-xs text-slate-600 mt-0.5">${e.description}</p></div>`).join('')}</div></div>` : ''}
+                            ${resumeData.skills ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-700 mb-1">Skills</h2><p class="text-xs text-slate-700">${resumeData.skills}</p></div>` : ''}
+                            ${renderCustomSectionsHTML(true)}
+                        </div>
+                    `;
+                } else if (currentTemplateId === 8) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm;";
+                    container.innerHTML = `
+                        <div class="space-y-6">
+                            <div class="p-6 bg-slate-100 rounded-xl border border-slate-200 flex justify-between items-center">
+                                <div>
+                                    <div class="text-2xl font-extrabold text-slate-900">${resumeData.name || 'Your Name'}</div>
+                                    <p class="text-xs font-bold uppercase tracking-wider text-slate-600 mt-1">${resumeData.title || 'Professional Title'}</p>
+                                </div>
+                                <div class="text-right text-xs text-slate-600 space-y-1">
+                                    ${resumeData.email ? `<div>${resumeData.email}</div>` : ''}
+                                    ${resumeData.phone ? `<div>${resumeData.phone}</div>` : ''}
+                                    ${resumeData.location ? `<div>${resumeData.location}</div>` : ''}
+                                    ${resumeData.website ? `<div>${resumeData.website}</div>` : ''}
+                                </div>
+                            </div>
+                            ${resumeData.summary ? `<div class="p-4 border border-slate-200 rounded-xl"><h2 class="text-xs font-bold uppercase text-slate-500 mb-1">Executive Summary</h2><p class="text-xs text-slate-700 leading-relaxed">${resumeData.summary}</p></div>` : ''}
+                            ${resumeData.experience.length > 0 ? `<div class="space-y-3"><h2 class="text-xs font-bold uppercase tracking-widest text-slate-400">Professional Experience</h2>${resumeData.experience.map(e => `<div class="p-4 border border-slate-200 rounded-xl"><div class="flex justify-between font-bold text-sm text-slate-900"><span>${e.role} (${e.company})</span><span class="text-xs text-slate-500">${e.period}</span></div><p class="text-xs text-slate-600 mt-1">${e.description}</p></div>`).join('')}</div>` : ''}
+                            ${resumeData.skills ? `<div class="p-4 border border-slate-200 rounded-xl"><h2 class="text-xs font-bold uppercase text-slate-500 mb-1">Core Skills</h2><p class="text-xs text-slate-700">${resumeData.skills}</p></div>` : ''}
+                            ${renderCustomSectionsHTML(true)}
+                        </div>
+                    `;
+                } else if (currentTemplateId === 7) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm;";
+                    container.innerHTML = `
+                        <div class="space-y-8">
+                            <div class="text-center space-y-2">
+                                <div class="text-4xl font-light tracking-wide text-slate-900">${resumeData.name || 'Your Name'}</div>
+                                <p class="text-xs uppercase tracking-widest text-slate-500">${resumeData.title || 'Professional Title'}</p>
+                                <div class="text-xs text-slate-400 pt-2 flex flex-wrap justify-center gap-4">
+                                    ${resumeData.email ? `<span>${resumeData.email}</span>` : ''}
+                                    ${resumeData.phone ? `<span>${resumeData.phone}</span>` : ''}
+                                    ${resumeData.location ? `<span>${resumeData.location}</span>` : ''}
+                                    ${resumeData.website ? `<span>${resumeData.website}</span>` : ''}
+                                </div>
+                            </div>
+                            <hr class="border-slate-200 w-16 mx-auto">
+                            ${resumeData.summary ? `<div class="text-center max-w-lg mx-auto"><p class="text-sm text-slate-600 italic leading-relaxed">"${resumeData.summary}"</p></div>` : ''}
+                            ${resumeData.experience.length > 0 ? `<div class="space-y-6"><h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 text-center">Experience</h2>${resumeData.experience.map(e => `<div class="space-y-1"><div class="flex justify-between font-bold text-sm text-slate-900"><span>${e.role}, ${e.company}</span><span class="text-xs font-normal text-slate-500">${e.period}</span></div><p class="text-xs text-slate-600 leading-relaxed">${e.description}</p></div>`).join('')}</div>` : ''}
+                            ${resumeData.skills ? `<div class="text-center"><h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Expertise</h2><p class="text-xs text-slate-600">${resumeData.skills}</p></div>` : ''}
+                            ${renderCustomSectionsHTML(true)}
+                        </div>
+                    `;
+                } else if (currentTemplateId === 4) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm;";
+                    container.innerHTML = `
+                        <div class="space-y-6">
+                            <div class="p-6 rounded-2xl text-white shadow-md flex items-center justify-between" style="background-color: ${accentColor};">
+                                <div>
+                                    <div class="text-3xl font-extrabold tracking-tight">${resumeData.name || 'Your Name'}</div>
+                                    <p class="text-sm font-medium opacity-90 mt-1">${resumeData.title || 'Professional Title'}</p>
+                                    <div class="flex flex-wrap gap-4 text-xs opacity-90 mt-3">
+                                        ${resumeData.email ? `<span><i class="fa-solid fa-envelope mr-1"></i> ${resumeData.email}</span>` : ''}
+                                        ${resumeData.phone ? `<span><i class="fa-solid fa-phone mr-1"></i> ${resumeData.phone}</span>` : ''}
+                                        ${resumeData.location ? `<span><i class="fa-solid fa-location-dot mr-1"></i> ${resumeData.location}</span>` : ''}
+                                        ${resumeData.website ? `<span><i class="fa-solid fa-globe mr-1"></i> ${resumeData.website}</span>` : ''}
+                                    </div>
+                                </div>
+                                ${resumeData.photo ? `<div class="w-20 h-20 rounded-xl overflow-hidden border-2 border-white/40 shadow-sm"><img src="${resumeData.photo}" class="w-full h-full object-cover"></div>` : ''}
+                            </div>
+                            ${resumeData.summary ? `<div><h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Summary</h2><p class="text-sm text-slate-700 leading-relaxed">${resumeData.summary}</p></div>` : ''}
+                            ${resumeData.experience.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Experience</h2><div class="space-y-4">${resumeData.experience.map(e => `<div><div class="flex justify-between font-bold text-sm text-slate-900"><span>${e.role} — ${e.company}</span><span class="text-xs font-normal text-slate-500">${e.period}</span></div><p class="text-xs text-slate-600 mt-1">${e.description}</p></div>`).join('')}</div></div>` : ''}
+                            ${resumeData.education.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Education</h2><div class="space-y-2">${resumeData.education.map(ed => `<div class="flex justify-between text-sm"><span class="font-bold text-slate-900">${ed.degree} (${ed.institution})</span><span class="text-xs text-slate-500">${ed.period}</span></div>`).join('')}</div></div>` : ''}
+                            ${resumeData.skills ? `<div><h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Skills</h2><div class="flex flex-wrap gap-1.5">${resumeData.skills.split(',').map(s => `<span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">${s.trim()}</span>`).join('')}</div></div>` : ''}
+                            ${renderCustomSectionsHTML(true)}
+                        </div>
+                    `;
+                } else if (currentTemplateId === 2) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm; color: #111;";
+                    container.innerHTML = `
+                        <div class="space-y-5">
+                            <div class="text-center pb-4 border-b-2 border-black">
+                                <div class="text-2xl font-bold uppercase tracking-wide text-black mt-2">${resumeData.name || 'Your Name'}</div>
+                                <p class="text-sm font-bold uppercase tracking-wider mt-1 text-slate-700">${resumeData.title || 'Professional Title'}</p>
+                                <div class="flex flex-wrap justify-center text-xs text-slate-700 mt-2 gap-x-2">
+                                    ${resumeData.email ? `<span>${resumeData.email}</span>` : ''}
+                                    ${resumeData.phone ? `<span>| ${resumeData.phone}</span>` : ''}
+                                    ${resumeData.location ? `<span>| ${resumeData.location}</span>` : ''}
+                                    ${resumeData.website ? `<span>| ${resumeData.website}</span>` : ''}
+                                </div>
+                            </div>
+                            ${resumeData.summary ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-black border-b border-black pb-1 mb-2">PROFESSIONAL SUMMARY</h2><p class="text-xs text-slate-800 leading-relaxed">${resumeData.summary}</p></div>` : ''}
+                            ${resumeData.skills ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-black border-b border-black pb-1 mb-2">CORE COMPETENCIES & SKILLS</h2><p class="text-xs text-slate-800 leading-relaxed">${resumeData.skills}</p></div>` : ''}
+                            ${resumeData.experience.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-black border-b border-black pb-1 mb-3">PROFESSIONAL EXPERIENCE</h2><div class="space-y-4">${resumeData.experience.map(e => `<div><div class="flex justify-between font-bold text-xs text-black"><span>${e.role} — ${e.company}</span><span>${e.period}</span></div><p class="text-xs text-slate-800 mt-1 leading-relaxed">• ${e.description}</p></div>`).join('')}</div></div>` : ''}
+                            ${resumeData.education.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-black border-b border-black pb-1 mb-3">EDUCATION</h2><div class="space-y-2">${resumeData.education.map(ed => `<div class="flex justify-between text-xs"><div><span class="font-bold text-black">${ed.degree}</span>, <span>${ed.institution}</span></div><span class="text-slate-800">${ed.period}</span></div>`).join('')}</div></div>` : ''}
+                            ${renderCustomSectionsHTML(true)}
+                        </div>
+                    `;
+                } else if (currentTemplateId === 5) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm;";
+                    container.innerHTML = `
+                        <div class="space-y-6 text-center">
+                            <div>
+                                <div class="text-3xl font-bold text-slate-900">${resumeData.name || 'Your Name'}</div>
+                                <p class="text-sm font-semibold tracking-wide text-slate-600 mt-1">${resumeData.title || 'Professional Title'}</p>
+                                <div class="flex flex-wrap justify-center items-center gap-3 text-xs text-slate-500 mt-2">
+                                    ${resumeData.email ? `<span>${resumeData.email}</span>` : ''}
+                                    ${resumeData.phone ? `<span>• ${resumeData.phone}</span>` : ''}
+                                    ${resumeData.location ? `<span>• ${resumeData.location}</span>` : ''}
+                                    ${resumeData.website ? `<span>• ${resumeData.website}</span>` : ''}
+                                </div>
+                            </div>
+                            <hr class="border-slate-300 w-3/4 mx-auto">
+                            <div class="text-left space-y-6">
+                                ${resumeData.summary ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Summary</h2><p class="text-sm text-slate-700 leading-relaxed">${resumeData.summary}</p></div>` : ''}
+                                ${resumeData.experience.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Experience</h2><div class="space-y-4">${resumeData.experience.map(e => `<div><div class="flex justify-between font-bold text-sm text-slate-900"><span>${e.role} at ${e.company}</span><span class="text-xs font-normal text-slate-500">${e.period}</span></div><p class="text-xs text-slate-600 mt-1 leading-relaxed">${e.description}</p></div>`).join('')}</div></div>` : ''}
+                                ${resumeData.skills ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Skills</h2><p class="text-xs text-slate-700 leading-relaxed">${resumeData.skills}</p></div>` : ''}
+                                ${renderCustomSectionsHTML(true)}
+                            </div>
+                        </div>
+                    `;
+                } else if (currentTemplateId === 3) {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm;";
+                    container.innerHTML = `
+                        <div class="grid grid-cols-3 gap-6 h-full">
+                            <div class="col-span-1 bg-slate-900 text-white p-6 rounded-xl space-y-6">
+                                ${resumeData.photo ? `<div class="w-24 h-24 rounded-full overflow-hidden border-2 border-white/30 mx-auto"><img src="${resumeData.photo}" class="w-full h-full object-cover"></div>` : ''}
+                                <div>
+                                    <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Contact</h2>
+                                    <div class="text-xs text-slate-300 space-y-1">
+                                        ${resumeData.email ? `<div>${resumeData.email}</div>` : ''}
+                                        ${resumeData.phone ? `<div>${resumeData.phone}</div>` : ''}
+                                        ${resumeData.location ? `<div>${resumeData.location}</div>` : ''}
+                                        ${resumeData.website ? `<div>${resumeData.website}</div>` : ''}
+                                    </div>
+                                </div>
+                                ${resumeData.skills ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Skills</h2><p class="text-xs text-slate-300 leading-relaxed">${resumeData.skills}</p></div>` : ''}
+                            </div>
+                            <div class="col-span-2 space-y-6 p-2">
+                                <div>
+                                    <div class="text-3xl font-extrabold text-slate-900">${resumeData.name || 'Your Name'}</div>
+                                    <p class="text-sm font-bold text-slate-600 uppercase tracking-wide mt-1">${resumeData.title || 'Professional Title'}</p>
+                                </div>
+                                ${resumeData.summary ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Profile</h2><p class="text-xs text-slate-700 leading-relaxed">${resumeData.summary}</p></div>` : ''}
+                                ${resumeData.experience.length > 0 ? `<div><h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Experience</h2><div class="space-y-3">${resumeData.experience.map(e => `<div><div class="flex justify-between font-bold text-xs text-slate-900"><span>${e.role} (${e.company})</span><span class="text-slate-500">${e.period}</span></div><p class="text-xs text-slate-600 mt-0.5">${e.description}</p></div>`).join('')}</div></div>` : ''}
+                                ${renderCustomSectionsHTML(true)}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.style.cssText = fontStyle + " background: white; width: 210mm; min-height: 297mm; padding: 20mm;";
+                    container.innerHTML = `
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between border-b pb-6" style="border-color: ${accentColor};">
+                                <div>
+                                    <div class="text-3xl font-extrabold tracking-tight text-slate-900">${resumeData.name || 'Your Name'}</div>
+                                    <p class="text-base font-semibold mt-1" style="color: ${accentColor};">${resumeData.title || 'Professional Title'}</p>
+                                    <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600 mt-3">
+                                        ${resumeData.email ? `<span><i class="fa-solid fa-envelope mr-1"></i> ${resumeData.email}</span>` : ''}
+                                        ${resumeData.phone ? `<span><i class="fa-solid fa-phone mr-1"></i> ${resumeData.phone}</span>` : ''}
+                                        ${resumeData.location ? `<span><i class="fa-solid fa-location-dot mr-1"></i> ${resumeData.location}</span>` : ''}
+                                        ${resumeData.website ? `<span><i class="fa-solid fa-globe mr-1"></i> ${resumeData.website}</span>` : ''}
+                                    </div>
+                                </div>
+                                ${resumeData.photo ? photoHTML : ''}
+                            </div>
+
+                            ${resumeData.summary ? `
+                                <div>
+                                    <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2">Professional Summary</h2>
+                                    <p class="text-sm text-slate-700 leading-relaxed">${resumeData.summary}</p>
+                                </div>
+                            ` : ''}
+
+                            ${resumeData.experience.length > 0 ? `
+                                <div>
+                                    <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-4">Experience</h2>
+                                    <div class="space-y-4">
+                                        ${resumeData.experience.map(e => `
+                                            <div>
+                                                <div class="flex items-center justify-between font-bold text-slate-900 text-sm">
+                                                    <span>${e.role} — <span style="color: ${accentColor};">${e.company}</span></span>
+                                                    <span class="text-xs font-normal text-slate-500">${e.period}</span>
+                                                </div>
+                                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">${e.description}</p>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${resumeData.education.length > 0 ? `
+                                <div>
+                                    <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-4">Education</h2>
+                                    <div class="space-y-3">
+                                        ${resumeData.education.map(ed => `
+                                            <div class="flex items-center justify-between text-sm">
+                                                <div>
+                                                    <span class="font-bold text-slate-900">${ed.degree}</span>
+                                                    <span class="text-slate-600 block text-xs">${ed.institution}</span>
+                                                </div>
+                                                <span class="text-xs text-slate-500">${ed.period}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${resumeData.skills ? `
+                                <div>
+                                    <h2 class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-3">Skills</h2>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${resumeData.skills.split(',').map(s => `<span class="px-2.5 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded-lg">${s.trim()}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${renderCustomSectionsHTML(true)}
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function loadSampleData() {
+            resumeData = {
+                photo: "",
+                name: "Sarah Jenkins",
+                title: "Product Design Director",
+                email: "sarah.j@designstudio.io",
+                phone: "+1 (415) 892-3341",
+                location: "New York, NY",
+                website: "sarahjenkins.design",
+                summary: "Visionary Product Design Director with 9+ years crafting award-winning enterprise UX, SaaS platforms, and mobile apps.",
+                experience: [
+                    { id: 1, role: "Head of Product Design", company: "Vortex Cloud Corp", period: "2021 - Present", description: "Lead a global team of 14 designers across US and Europe." }
+                ],
+                education: [
+                    { id: 1, degree: "M.F.A. in Interaction Design", institution: "Parsons School of Design", period: "2015 - 2017", details: "" }
+                ],
+                skills: "Figma, Design Systems, UX Research, Prototyping, Wireframing, Agile",
+                customSections: [
+                    { id: 1, title: "Awards", content: "Awwwards Site of the Day (2023)" }
+                ]
+            };
+            populateInputs();
+            renderResume();
+            showToast("Demo sample data loaded!");
+        }
+
+        function downloadPDF() {             
+            const isMobileView = window.innerWidth < 1024;             
+            const activeContainer = isMobileView                  
+                ? document.getElementById('mobile-preview-container')                  
+                : document.querySelector('.preview-wrapper:not(#mobile-preview-container)');                          
+            
+            const element = activeContainer ? activeContainer.querySelector('.resume-preview-card') : document.querySelector('.resume-preview-card');              
+            
+            if (!element) {                 
+                showToast("Could not find resume preview element.");                 
+                return;             
+            }              
+
+            const originalZoom = element.style.zoom;             
+            element.style.zoom = '1';              
+
+            const opt = {                 
+                margin:       0,                 
+                filename:     'resume.pdf',                 
+                image:        { type: 'jpeg', quality: 0.98 },                 
+                html2canvas:  { scale: 2, useCORS: true, letterRendering: true },                 
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }             
+            };              
+
+            html2pdf().from(element).set(opt).save().then(() => {                 
+                element.style.zoom = originalZoom;                 
+                showToast("PDF downloaded successfully!");             }).catch(err => {                 
+                element.style.zoom = originalZoom;                 
+                showToast("Error generating PDF.");             });         
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
