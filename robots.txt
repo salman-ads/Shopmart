@@ -1,4 +1,1 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://shopmart.in/sitemap.xml
+Sitemap: https://shopmart.co.in/sitemap.xml
